@@ -1,0 +1,4 @@
+participant,trial,condition,right_power,left_power,start_time,end_time
+test,1,Visuomotor_1.0,1.0,1.0,2025-10-16 13:32:43.172800,2025-10-16 13:33:34.211412
+test,1,Visuomotor_2.0,2.0,2.0,2025-10-16 13:36:34.546282,2025-10-16 13:37:25.536361
+test,1,Visuomotor_1.5,1.5,1.5,2025-10-16 13:38:00.080288,2025-10-16 13:38:51.085275
