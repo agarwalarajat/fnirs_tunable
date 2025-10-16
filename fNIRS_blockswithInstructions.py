@@ -122,17 +122,18 @@ else:
     for l in lenses: l.to_focal_power_mode()
 
 # ------------------ Experiment Parameters ------------------
-task_variants = ["Visuomotor","Motor-only","Visual-only"]
+task_variants = ["Visuomotor","Motor-only","Visual-only","Baseline"]
 blur_levels_vm_vo = [0,0.5,1.0,1.5,2.0]
 blur_levels_motor = [0]
 repeats = 3
-marker_base = {"Visuomotor":200,"Motor-only":300,"Visual-only":400}
+marker_base = {"Visuomotor":200,"Motor-only":300,"Visual-only":400,"Baseline":500}
 
 # Task-specific descriptions
 task_descriptions = {
     "Visuomotor": "Move the bead from left to right \n follow the pattern.",
     "Motor-only": "Move the bead from left and right",
     "Visual-only": "Watch the board from left to right \n Do not move your head.",
+    "Baseline": "+"
 }
 
 # ------------------ Generate Randomized Blocks ------------------
@@ -143,7 +144,9 @@ for r in range(repeats):
     rep_blocks += [("Visuomotor",b) for b in blur_levels_vm_vo]
     rep_blocks += [("Motor-only",b) for b in blur_levels_motor]
     rep_blocks += [("Visual-only",b) for b in blur_levels_vm_vo]
+    rep_blocks += [("Baseline", b) for b in blur_levels_vm_vo]
     random.shuffle(rep_blocks)
+    print(rep_blocks)
     for task, blur in rep_blocks:
         blur_idx = 0 if task=="Motor-only" else blur_levels_vm_vo.index(blur)
         active_marker = marker_base[task] + blur_idx
@@ -194,7 +197,7 @@ root.update()
 def run_block(block):
     """
     Runs a single experimental block (trial).
-    Displays appropriate instructions, controls lenses,
+    Displays task-specific instructions, controls lenses,
     plays tones, sends LSL markers, and logs results.
     """
 
@@ -225,58 +228,62 @@ def run_block(block):
     start_time = datetime.now()
 
     # ------------------ Lens Switching ------------------
-    instruction_label.configure(
-        text=f"Lens Switching...\n\nSetting blur"
-    )
-    root.update()
-    set_lens_power(block['Blur(D)'])
-    time.sleep(1)
-    send_marker(block['Lens Switch'], "Lens Switch")
+    if block["Task"] != "Baseline":
+        instruction_label.configure(text="Lens Switching...\n\nSetting blur value")
+        root.update()
+        set_lens_power(block["Blur(D)"])
+        time.sleep(1)
+        send_marker(block["Lens Switch"], "Lens Switch")
 
-    # ------------------ Preparation Cue ------------------
-    prep_text = (
-        f"Prepare for the task {block['Task']}\n\n"
-        f"{task_descriptions[block['Task']]}"
-    )
-    instruction_label.configure(text=prep_text)
-    root.update()
-    send_marker(block['Prep Cue'], "Prep Cue")
-    time.sleep(3)
+    # ------------------ Baseline Block (special case) ------------------
+    if block["Task"] == "Baseline":
+        instruction_label.configure(
+            text="Baseline Period\n\n+",
+            font=("Arial", 72)
+        )
+        root.update()
+        send_marker(block["Active Onset"], "Baseline Start")
+        time.sleep(20)
+        send_marker(block["Task Offset"], "Baseline End")
 
-    # ------------------ Active Task ------------------
-    play_start_tone(frequency=1000, duration=0.5)  # short tone cue
-    active_text = (
-        f"Active Task: {block['Task']}\n\n"
-        f"{task_descriptions[block['Task']]}"
-    )
-    instruction_label.configure(text=active_text)
-    root.update()
-    send_marker(
-        block['Active Onset'],
-        f"Active Onset - {block['Task']} Blur {block['Blur(D)']}D"
-    )
-    time.sleep(20)
+    # ------------------ All Other Tasks ------------------
+    else:
+        # Prep Cue
+        prep_text = (
+            f"Prepare for the task: {block['Task']}\n\n"
+            f"{task_descriptions[block['Task']]}"
+        )
+        instruction_label.configure(text=prep_text)
+        root.update()
+        send_marker(block["Prep Cue"], "Prep Cue")
+        time.sleep(3)
 
-    # ------------------ Post-task ------------------
-    instruction_label.configure(text="Task Complete.\n\nPlease remain still.")
-    root.update()
-    send_marker(block['Task Offset'], "Task Offset")
-    send_marker(block['Post-task'], "Post-task")
-    time.sleep(5)
+        # Active Task
+        play_start_tone(frequency=1000, duration=0.5)
+        active_text = (
+            f"Active Task: {block['Task']}\n\n"
+            f"{task_descriptions[block['Task']]}"
+        )
+        instruction_label.configure(text=active_text)
+        root.update()
+        send_marker(
+            block["Active Onset"],
+            f"Active Onset - {block['Task']} Blur {block['Blur(D)']}D"
+        )
+        time.sleep(20)
 
-    # ------------------ Baseline ------------------
-    instruction_label.configure(
-        text="Rest / Baseline Period\n\nRelax and fixate on the center."
-    )
-    root.update()
-    send_marker(block['Baseline'], "Baseline")
-    time.sleep(20)
+        # Post-task
+        instruction_label.configure(text="Task Complete.\n\nPlease remain still.")
+        root.update()
+        send_marker(block["Task Offset"], "Task Offset")
+        send_marker(block["Post-task"], "Post-task")
+        time.sleep(5)
 
     # ------------------ Log and Wrap Up ------------------
     end_time = datetime.now()
     log_trial(
         participant_id,
-        block['Trial'],
+        block["Trial"],
         f"{block['Task']}_{block['Blur(D)']}",
         right_lens.get_diopter(),
         left_lens.get_diopter(),
