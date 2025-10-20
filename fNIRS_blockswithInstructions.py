@@ -188,9 +188,9 @@ else:
 
 marker_base = {"Visuomotor": 30, "Motor-only": 40, "Visual-only": 50, "Baseline": 60}
 task_descriptions = {
-    "Visuomotor": "Move the bead from left to right \n follow the pattern.",
-    "Motor-only": "Move the bead from left and right",
-    "Visual-only": "Watch the board from left to right \n Do not move your head.",
+    "Visuomotor": "Move the bead from left to right \n 1 grey 2 white repeat.",
+    "Motor-only": "Pick the bead from left and drop on the right board",
+    "Visual-only": "Watch the board from left to right",
     "Baseline": "+"
 }
 
@@ -232,7 +232,7 @@ def set_lens_power(val):
     val = float(val)
     for l in lenses:
         l.set_diopter(val)
-    send_marker(15, "Lens Switch")
+    send_marker(5, "Lens Switch")
 
 # ------------------ Instruction GUI ------------------
 root = ctk.CTk()
