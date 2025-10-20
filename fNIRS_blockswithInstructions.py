@@ -20,7 +20,7 @@ ctk.set_appearance_mode("Light")
 ctk.set_default_color_theme("blue")
 
 # ------------------ LSL Marker Stream ------------------
-info = StreamInfo(name='UnityTriggers', type='Markers', channel_count=1,
+info = StreamInfo(name='TuneTriggers', type='Markers', channel_count=1,
                   channel_format='int32', source_id='fNIRS_marker_001')
 lsl_outlet = StreamOutlet(info)
 
@@ -32,12 +32,23 @@ def play_start_tone(frequency=440, duration=0.5):
     sa.play_buffer(audio, 1, 2, fs).wait_done()
 
 def send_marker(code, name=None):
+    # Send to LSL
     lsl_outlet.push_sample([code])
+
+    # Create timestamp
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")
+
+    # Print to console
     if name:
         print(f"[LSL] Marker sent: {code} ({name}) at {timestamp}")
     else:
         print(f"[LSL] Marker sent: {code} at {timestamp}")
+
+    # Save to CSV
+    with open(trigger_log_path, 'a', newline='') as f:
+        writer = csv.writer(f)
+        writer.writerow([timestamp, code, name if name else ""])
+
 
 # ------------------ Display Setup ------------------
 monitors = get_monitors()
@@ -118,6 +129,17 @@ participant_id = get_participant_info()
 if not participant_id:
     exit()
 
+folder = os.path.join("data", participant_id)
+os.makedirs(folder, exist_ok=True)   # ✅ This creates the folder if it doesn't exist
+
+# Create trigger log file if it doesn't exist
+trigger_log_path = os.path.join("data", participant_id, f"{participant_id}_triggers.csv")
+if not os.path.exists(trigger_log_path):
+    with open(trigger_log_path, 'w', newline='') as f:
+        writer = csv.writer(f)
+        writer.writerow(["timestamp", "marker_code", "marker_name"])
+
+# Detect connected lenses
 ports = list(serial.tools.list_ports.comports())
 simulation_mode = False
 if len(ports) < 2:
@@ -164,7 +186,7 @@ else:
     repeats = 3
     print("[INFO] Main run detected: Using full block set (3 repeats, 5 blur levels)")
 
-marker_base = {"Visuomotor": 200, "Motor-only": 300, "Visual-only": 400, "Baseline": 500}
+marker_base = {"Visuomotor": 30, "Motor-only": 40, "Visual-only": 50, "Baseline": 60}
 task_descriptions = {
     "Visuomotor": "Move the bead from left to right \n follow the pattern.",
     "Motor-only": "Move the bead from left and right",
@@ -189,12 +211,12 @@ for r in range(repeats):
             "Trial": trial_counter,
             "Task": task,
             "Blur(D)": blur,
-            "Lens Switch": 900,
-            "Prep Cue": 910,
+            "Lens Switch": 10,
+            "Prep Cue": 20,
             "Active Onset": active_marker,
-            "Task Offset": active_marker + 500,
-            "Post-task": 13,
-            "Baseline": 14
+            "Task Offset": active_marker + 5,
+            "Post-task": 70,
+            "Baseline": 80
         })
         trial_counter += 1
 
@@ -210,7 +232,7 @@ def set_lens_power(val):
     val = float(val)
     for l in lenses:
         l.set_diopter(val)
-    send_marker(900, "Lens Switch")
+    send_marker(15, "Lens Switch")
 
 # ------------------ Instruction GUI ------------------
 root = ctk.CTk()
@@ -275,7 +297,10 @@ def run_block(block):
         instruction_label.configure(text=active_text)
         root.update()
         send_marker(block["Active Onset"], f"Active Onset - {block['Task']} Blur {block['Blur(D)']}D")
-        time.sleep(10)
+        if block["Task"] == "Visuomotor":
+            time.sleep(20)  # 20 seconds for Visuomotor
+        else:
+            time.sleep(10)  # 10 seconds for other tasks
 
         play_start_tone(frequency=2000, duration=0.3)
         instruction_label.configure(text="Task Complete.\n\nPlease remain still.")
@@ -297,7 +322,7 @@ def run_block(block):
         end_time
     )
 
-    send_marker(999, "Block Complete")
+    send_marker(99, "Block Complete")
     print(f"[INFO] Trial {block['Trial']} complete.")
     return True
 
