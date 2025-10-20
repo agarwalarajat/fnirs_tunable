@@ -145,7 +145,7 @@ simulation_mode = False
 if len(ports) < 2:
     proceed = messagebox.askyesno(
         "Lenses Not Found",
-        "Two EL-35-45 lenses not detected.\nRun in Simulation Mode?",
+        "Two tunable lenses not detected.\nRun in Simulation Mode?",
         parent=root_base
     )
     if not proceed:
