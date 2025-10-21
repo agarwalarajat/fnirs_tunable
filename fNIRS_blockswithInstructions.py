@@ -53,9 +53,9 @@ def send_marker(code, name=None):
 # ------------------ Display Setup ------------------
 monitors = get_monitors()
 primary_monitor = next(m for m in monitors if m.is_primary)
-#secondary_monitor = next(m for m in monitors if not m.is_primary)
+secondary_monitor = next(m for m in monitors if not m.is_primary)
 
-secondary_monitor = next(m for m in monitors if m.is_primary)
+#secondary_monitor = next(m for m in monitors if m.is_primary)
 
 # Hidden base root for all messageboxes
 root_base = Tk()
@@ -74,33 +74,54 @@ def get_participant_info():
 
     win = ctk.CTkToplevel()
     win.title("Participant Info")
-    center_window(win, 300, 220)
+    center_window(win, 300, 350)
     win.resizable(False, False)
     win.grab_set()
 
+    # --- Participant ID ---
     ctk.CTkLabel(win, text="Participant ID:").pack(pady=(20, 5))
-    entry = ctk.CTkEntry(win, width=200)
-    entry.pack()
-    entry.focus_set()
+    pid_entry = ctk.CTkEntry(win, width=200)
+    pid_entry.pack()
+    pid_entry.focus_set()
 
+    # --- Prescription ---
+    ctk.CTkLabel(win, text="Participant Prescription:").pack(pady=(20, 5))
+    prescription_var = ctk.StringVar(value="0")  # default 0
+    prescription_entry = ctk.CTkEntry(win, width=200, textvariable=prescription_var)
+    prescription_entry.pack()
+
+    # --- Run Type ---
     ctk.CTkLabel(win, text="Run Type:").pack(pady=(15, 5))
     run_type_var = ctk.StringVar(value="Main")
     run_type_option = ctk.CTkOptionMenu(win, variable=run_type_var, values=["Main", "Practice"])
     run_type_option.pack()
 
+    # --- Confirm Button ---
     def confirm(event=None):
-        pid = entry.get().strip()
+        pid = pid_entry.get().strip()
         if not pid:
             messagebox.showerror("Error", "Please enter Participant ID", parent=root_base)
             return
+
         run_type = run_type_var.get()
+
+        # Read prescription and convert to float
+        prescription = prescription_var.get().strip()
+        try:
+            prescription = float(prescription)
+        except ValueError:
+            messagebox.showerror("Error", "Prescription must be a number", parent=root_base)
+            return
+
         result['participant'] = f"{pid}_{run_type}"
+        result['prescription'] = prescription
         win.destroy()
 
     ctk.CTkButton(win, text="Confirm", command=confirm).pack(pady=20)
     win.bind("<Return>", confirm)
     win.wait_window()
-    return result.get('participant')
+
+    return result
 
 def get_trial_file_path(participant_id):
     folder = os.path.join("data", participant_id)
@@ -125,9 +146,13 @@ def log_trial(participant_id, trial_number, condition, right_power, left_power, 
         ])
 
 # ------------------ Participant & Lens Setup ------------------
-participant_id = get_participant_info()
+participant_info = get_participant_info()
+participant_id = participant_info['participant']
+print(participant_id)
 if not participant_id:
     exit()
+
+prescription = participant_info['prescription']  # float, default 0 if user didn't change
 
 folder = os.path.join("data", participant_id)
 os.makedirs(folder, exist_ok=True)   # ✅ This creates the folder if it doesn't exist
@@ -172,7 +197,7 @@ else:
 # ------------------ Experiment Parameters ------------------
 task_variants = ["Visuomotor", "Motor-only", "Visual-only", "Baseline"]
 
-prescription = -0.0  # Example prescription value
+#prescription = -0.0  # Example prescription value
 
 # Detect if this is a practice run
 is_practice = "Practice" in participant_id
