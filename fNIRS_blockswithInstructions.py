@@ -172,17 +172,19 @@ else:
 # ------------------ Experiment Parameters ------------------
 task_variants = ["Visuomotor", "Motor-only", "Visual-only", "Baseline"]
 
+prescription = -0.0  # Example prescription value
+
 # Detect if this is a practice run
 is_practice = "Practice" in participant_id
 
 if is_practice:
-    blur_levels_vm_vo = [0, 0.5]
-    blur_levels_motor = [0]
+    blur_levels_vm_vo = [x + prescription for x in [0, 0.5]]
+    blur_levels_motor = [x + prescription for x in [0]]
     repeats = 1
     print("[INFO] Practice run detected: Using reduced block set (1 repeat, 0 & 0.5 D)")
 else:
-    blur_levels_vm_vo = [0, 0.5, 1.0, 1.5, 2.0]
-    blur_levels_motor = [0]
+    blur_levels_vm_vo = [x + prescription for x in [0, 0.5, 1.0, 1.5, 2.0]]
+    blur_levels_motor = [x + prescription for x in [0]]
     repeats = 3
     print("[INFO] Main run detected: Using full block set (3 repeats, 5 blur levels)")
 
