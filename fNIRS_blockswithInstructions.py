@@ -274,7 +274,7 @@ def run_block(block):
         time.sleep(10)
         send_marker(block["Task Offset"], "Baseline End")
 
-        play_start_tone(frequency=2500, duration=0.3)
+        play_start_tone(frequency=2500, duration=0.3)   
         instruction_label.configure(text="Task Complete.\n\nPlease remain still.", font=("Arial", 36))
         root.update()
         send_marker(block["Post-task"], "Post-task")
